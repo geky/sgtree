@@ -94,6 +94,11 @@ private: // Indexing
         return i;
     }
 
+    void expand(unsigned i) {
+        count = count ? 2*count+1 : 1;
+        data.resize(count);
+    }
+
 public: // Iterator mechanics
     class iter;
 
@@ -118,8 +123,7 @@ public: // Set operations
     void insert(const K &key, const V &val) {
         unsigned i = lookup(key);
         if (i+1 >= data.size) {
-            count = count ? 2*count+1 : 1;
-            data.resize(count);
+            expand(i);
         }
 
         data[i] = entry{pair{key, val}};
@@ -130,6 +134,19 @@ public: // Set operations
         if (i < data.size) {
             data[i] = entry{};
         }
+    }
+
+    V &operator[](const K &key) {
+        unsigned i = lookup(key);
+        if (i+1 >= data.size) {
+            expand(i);
+        }
+
+        if (!data[i]) {
+            data[i] = entry{pair{key, V{}}};
+        }
+
+        return data[i]->val;
     }
 };
 
@@ -158,12 +175,12 @@ public:
         return *this;
     }
 
-    V &operator*() {
-        return tree->data[i]->val;
+    sgtree<K, V>::pair &operator*() {
+        return *tree->data[i];
     }
 
-    V *operator->() {
-        return &tree->data[i]->val;
+    sgtree<K, V>::pair *operator->() {
+        return &*tree->data[i];
     }
 
     iter &operator++() {
