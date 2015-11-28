@@ -23,7 +23,7 @@ public:
 
     maybe(const maybe &m) : nil(m.nil) {
         if (!nil) {
-            new (&val) T{m._val};
+            new (&val) T{m.val};
         }
     }
 

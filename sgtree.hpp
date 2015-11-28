@@ -10,15 +10,46 @@
 #include "buffer.hpp"
 
 
+#include <iostream>
+
+template <typename K, typename V>
+class sgtree;
+
+template <typename K, typename V>
+std::ostream &dump(buffer<typename sgtree<K,V>::entry> &b) {
+    std::cout << "[ ";
+    for (auto &e : b) {
+        if (!e) {
+            std::cout << "- ";
+        } else {
+            std::cout << e->key << " ";
+        }
+    }
+    std::cout << "]";
+
+    return std::cout;
+}
+
+template <typename K, typename V>
+std::ostream &operator<<(std::ostream &os, sgtree<K,V> &tree) {
+    os << "{ ";
+    for (auto &i : tree) {
+        os << i.val << " ";
+    }
+    os << "}";
+
+    return os;
+}
+
+
 template <typename K, typename V>
 class sgtree {
-private:
+public:
     struct pair { K key; V val; };
     typedef maybe<pair> entry;
     buffer<entry> data;
     unsigned count;
 
-public:
     sgtree(unsigned size = 0) :
             data(size), count(0) {}
 
@@ -27,9 +58,10 @@ private: // Indexing
         return i < data.size && data[i];
     }
 
-    unsigned left(unsigned i)   { return 2*(i+1)-1; }
-    unsigned right(unsigned i)  { return 2*(i+1)-0; }
-    unsigned parent(unsigned i) { return (i+1)/2-1; }
+    unsigned left(unsigned i)    { return 2*(i+1)-1; }
+    unsigned right(unsigned i)   { return 2*(i+1)-0; }
+    unsigned parent(unsigned i)  { return (i+1)/2-1; }
+    unsigned sibling(unsigned i) { return ((i+1)^1)-1; }
 
     unsigned smallest(unsigned i) {
         unsigned p = -1;
@@ -94,9 +126,73 @@ private: // Indexing
         return i;
     }
 
-    void expand(unsigned i) {
-        count = count ? 2*count+1 : 1;
-        data.resize(count);
+    unsigned weight(unsigned i) {
+        if (!valid(i)) {
+            return 0;
+        } else {
+            return weight(left(i)) + weight(right(i)) + 1;
+        }
+    }
+
+    unsigned scapegoat(unsigned i, unsigned *w) {
+        unsigned a = *w;
+        unsigned b = weight(sibling(i));
+        *w = a+b+1;
+
+        if (2*a > *w || 2*b > *w) {
+            return parent(i);
+        } else {
+            return scapegoat(parent(i), w);
+        }
+    }
+
+    void median(unsigned i, buffer<entry> &temp,
+            unsigned lo, unsigned hi) {
+        unsigned mid = (lo+hi)/2;
+        if (lo+1 > hi+1) {
+            return;
+        }
+
+        std::cout << mid << "(" << lo << " " << hi << ")" << std::endl;
+        data[i] = temp[mid];
+        median(left(i), temp, lo, mid-1);
+        median(right(i), temp, mid+1, hi);
+    }
+
+    void rebalance(unsigned i, unsigned w, const entry &e) {
+        buffer<entry> temp = buffer<entry>(w);
+        unsigned j = smallest(i);
+        unsigned n = 0;
+
+        while (j+1 > i && data[j]->key < e->key) {
+            temp[n++] = data[j];
+            j = succ(j);
+        }
+
+        temp[n++] = e;
+
+        while (j+1 > i) {
+            temp[n++] = data[j];
+            j = succ(j);
+        }
+
+        dump<K,V>(temp) << " ordered" << std::endl;
+        median(i, temp, 0, w-1);
+    }
+
+    void expand(unsigned i, const entry &e) {
+        dump<K,V>(data) << std::endl;
+        unsigned w = 1;
+        i = scapegoat(i, &w);
+
+        if (valid(i)) {
+            rebalance(i, w, e);
+            std::cout << "sg @ " << i << " -> " << w << std::endl;
+            dump<K,V>(data) << std::endl;
+        } else {
+            data.resize(data.size ? 2*data.size+1 : 1);
+            std::cout << "resize (" << i << ", " << data.size << ") -> " << count << std::endl;
+        }
     }
 
 public: // Iterator mechanics
@@ -122,28 +218,38 @@ public: // Set operations
 
     void insert(const K &key, const V &val) {
         unsigned i = lookup(key);
-        if (i+1 >= data.size) {
-            expand(i);
+        if (i+1 > data.size) {
+            expand(i, entry{pair{key, val}});
+            return;
         }
 
         data[i] = entry{pair{key, val}};
+        count++;
     }
 
     void erase(const K &key) {
         unsigned i = lookup(key);
-        if (i < data.size) {
-            data[i] = entry{};
+        if (valid(i)) {
+            unsigned j = succ(i);
+            data[i] = data[j];
+            data[j] = entry{};
+            count--;
         }
     }
 
     V &operator[](const K &key) {
         unsigned i = lookup(key);
-        if (i+1 >= data.size) {
-            expand(i);
+        std::cout << "insert " << i << std::endl;
+
+        if (i+1 > data.size) {
+            expand(i, entry{pair{key, V{}}});
+            count++;
+            return operator[](key);
         }
 
         if (!data[i]) {
             data[i] = entry{pair{key, V{}}};
+            count++;
         }
 
         return data[i]->val;

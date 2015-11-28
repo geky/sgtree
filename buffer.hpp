@@ -5,8 +5,10 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include <cstdlib>
 #include <new>
+#include <cstdlib>
+#include <cassert>
+#include <iostream>
 
 
 template <typename T>
@@ -65,8 +67,15 @@ struct buffer {
         size = nsize;
     }
 
-    T &operator[](unsigned i)             { return data[i]; }
-    const T &operator[](unsigned i) const { return data[i]; }
+    T &operator[](unsigned i) {
+        assert(i < size);
+        return data[i]; 
+    }
+
+    const T &operator[](unsigned i) const {
+        assert(i < size);
+        return data[i];
+    }
 
     T *begin()             { return &data[0]; }
     T *end()               { return &data[size]; }
