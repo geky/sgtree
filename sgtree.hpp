@@ -191,64 +191,28 @@ private:
         }
     }
 
-#if 0
-    void median(unsigned i, buffer<entry> &temp,
-            unsigned lo, unsigned hi) {
-        unsigned mid = (lo+hi)/2;
-        if (lo+1 > hi+1) {
-            return;
-        }
-
-        std::cout << mid << "(" << lo << " " << hi << ")" << std::endl;
-        data[i] = temp[mid];
-        median(left(i), temp, lo, mid-1);
-        median(right(i), temp, mid+1, hi);
-    }
-
-    void rebalance(unsigned i, unsigned w, const entry &e) {
-        buffer<entry> temp = buffer<entry>(w);
-        unsigned j = smallest(i);
-        unsigned n = 0;
-
-        while (j+1 > i && data[j]->key < e->key) {
-            temp[n++] = data[j];
-            j = succ(j);
-        }
-
-        temp[n++] = e;
-
-        while (j+1 > i) {
-            temp[n++] = data[j];
-            j = succ(j);
-        }
-
-        dump<K,V>(temp) << " ordered" << std::endl;
-        median(i, temp, 0, w-1);
-    }
-#else
-    void rebalance(unsigned i, unsigned w, const entry &e) {
+    // Rebalancing when scapegoat is present
+    unsigned rebalance(unsigned g, unsigned w, const K &key) {
         unsigned n;
-        unsigned j = largest(i);
+        unsigned i = largest(g);
         terrible t = largest(terrible{i});
 
         for (n = 0; n < w-1; n++) {
-            std::swap(data[t], data[j]);
-            j = pred(j);
+            std::swap(data[t], data[i]);
+            i = pred(i);
             t = pred(t);
         }
 
-        dump<K,V>(data) << std::endl;
-
-        perfect p = smallest(perfect{i, w});
+        perfect p = smallest(perfect{g, w});
         t = succ(t);
     
-        for (n = 0; n < w-1 && data[t]->key < e->key; n++) {
+        for (n = 0; n < w-1 && data[t]->key < key; n++) {
             std::swap(data[p], data[t]);
             p = succ(p);
             t = succ(t);
         }
 
-        data[p] = e;
+        i = p;
         p = succ(p);
 
         for (; n < w-1; n++) {
@@ -256,22 +220,19 @@ private:
             p = succ(p);
             t = succ(t);
         }
+
+        return i;
     }
-#endif
 
-    void expand(unsigned i, const entry &e) {
+    unsigned expand(unsigned i, const K &key) {
         unsigned w = 1;
-        i = scapegoat(i, &w);
+        unsigned g = scapegoat(i, &w);
 
-        if (valid(i)) {
-            std::cout << "sg @ " << i << " -> " << w << std::endl;
-            dump<K,V>(data) << std::endl;
-            rebalance(i, w, e);
-            dump<K,V>(data) << std::endl;
+        if (valid(g)) {
+            return rebalance(g, w, key);
         } else {
             data.resize(data.size ? 2*data.size+1 : 1);
-            std::cout << "resize (" << i << ", " << data.size << ") -> " << count << std::endl;
-            dump<K,V>(data) << std::endl;
+            return i;
         }
     }
 
@@ -298,9 +259,8 @@ public: // Set operations
 
     void insert(const K &key, const V &val) {
         unsigned i = lookup(key);
-        if (i+1 > data.size) {
-            expand(i, entry{pair{key, val}});
-            return;
+        if (i >= data.size) {
+            i = expand(i, key);
         }
 
         data[i] = entry{pair{key, val}};
@@ -319,12 +279,8 @@ public: // Set operations
 
     V &operator[](const K &key) {
         unsigned i = lookup(key);
-        std::cout << "insert " << i << std::endl;
-
-        if (i+1 > data.size) {
-            expand(i, entry{pair{key, V{}}});
-            count++;
-            return operator[](key);
+        if (i >= data.size) {
+            i = expand(i, key);
         }
 
         if (!data[i]) {
@@ -345,59 +301,19 @@ private:
     sgtree<K, V> *tree;
     unsigned i;
 
-    iter(sgtree<K, V> *tree, unsigned i) :
-            tree(tree), i(i) {}
+    iter(sgtree<K, V> *tree, unsigned i) : tree(tree), i(i) {}
 
 public:
-    iter(const iter &iter) :
-            tree(iter.tree), i(iter.i) {}
+    sgtree<K, V>::pair &operator*() { return *tree->data[i]; }
+    sgtree<K, V>::pair *operator->() { return &*tree->data[i]; }
 
-    iter &operator=(const iter &iter) {
-        if (this != &iter) {
-            tree = iter.tree;
-            i = iter.i;
-        }
+    iter &operator++() { i = tree->succ(i); return *this; }
+    iter &operator--() { i = tree->pred(i); return *this; }
+    iter operator++(int) { iter p = *this; i = tree->succ(i); return p; }
+    iter operator--(int) { iter p = *this; i = tree->pred(i); return p; }
 
-        return *this;
-    }
-
-    sgtree<K, V>::pair &operator*() {
-        return *tree->data[i];
-    }
-
-    sgtree<K, V>::pair *operator->() {
-        return &*tree->data[i];
-    }
-
-    iter &operator++() {
-        i = tree->succ(i);
-        return *this;
-    }
-
-    iter operator++(int) {
-        iter p = *this;
-        i = tree->succ(i);
-        return p;
-    }
-
-    iter &operator--() {
-        i = tree->pred(i);
-        return *this;
-    }
-
-    iter operator--(int) {
-        iter p = *this;
-        i = tree->pred(i);
-        return p;
-    }
-
-    bool operator==(const iter &iter) {
-        return i == iter.i;
-    }
-
-    bool operator!=(const iter &iter) {
-        return i != iter.i;
-    }
+    bool operator==(const iter &iter) { return i == iter.i; }
+    bool operator!=(const iter &iter) { return i != iter.i; }
 };
 
 
