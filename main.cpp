@@ -2,17 +2,18 @@
 #include "sgtree.hpp"
 #include <iostream>
 
-//template <typename K, typename V>
-//std::ostream &operator<<(std::ostream &os, sgtree<K,V> &tree) {
-//    os << "{ ";
-//    for (auto &i : tree) {
-//        os << i.val << " ";
-//    }
-//    os << "}";
-//
-//    return os;
-//}
-    
+template <typename K, typename V>
+std::ostream &operator<<(std::ostream &os, sgtree<K,V> &tree) {
+    os << "{ ";
+    for (auto &i : tree) {
+        os << i.val << " ";
+    }
+    os << "}";
+
+    return os;
+}
+
+
 int main() {
     sgtree<int, int> test;
     test.insert(3,3);

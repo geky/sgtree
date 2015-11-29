@@ -11,51 +11,6 @@
 #include "buffer.hpp"
 
 
-#include <iostream>
-
-template <typename K, typename V>
-class sgtree;
-
-template <typename K, typename V>
-std::ostream &dump(buffer<typename sgtree<K,V>::entry> &b) {
-//    int i = 1;
-//    int c = 2;
-
-    std::cout << "[ ";
-    for (auto &e : b) {
-        if (!e) {
-            std::cout << "-";
-        } else {
-            std::cout << e->key;
-        }
-
-        std::cout << " ";
-
-//        if (--i == 0) {
-//            std::cout << "|";
-//            i = c;
-//            c *= 2;
-//        } else {
-//            std::cout << " ";
-//        }
-    }
-    std::cout << "]";
-
-    return std::cout;
-}
-
-template <typename K, typename V>
-std::ostream &operator<<(std::ostream &os, sgtree<K,V> &tree) {
-    os << "{ ";
-    for (auto &i : tree) {
-        os << i.val << " ";
-    }
-    os << "}";
-
-    return os;
-}
-
-
 template <typename K, typename V>
 class sgtree {
 public:
