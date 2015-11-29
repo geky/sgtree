@@ -5,30 +5,30 @@
 #ifndef SGTREE_H
 #define SGTREE_H
 
-#include <functional>
-#include <algorithm>
 #include "maybe.hpp"
 #include "buffer.hpp"
+#include <functional>
+#include <algorithm>
+#include <cassert>
 
 
 template <typename K, typename V>
 class sgtree {
-public:
+private:
     struct pair { K key; V val; };
     typedef maybe<pair> entry;
     buffer<entry> data;
-    unsigned count;
 
-    sgtree(unsigned size = 0) :
-            data(size), count(0) {}
+public:
+    sgtree(unsigned size = 0) : data(size) {}
 
 private:
     // Normal iteration
-    bool valid(unsigned i)       { return i < data.size && data[i]; }
-    unsigned left(unsigned i)    { return 2*(i+1)-1; }
-    unsigned right(unsigned i)   { return 2*(i+1)-0; }
-    unsigned parent(unsigned i)  { return (i+1)/2-1; }
-    unsigned sibling(unsigned i) { return ((i+1)^1)-1; }
+    bool valid(unsigned i) const       { return i < data.size && data[i]; }
+    unsigned left(unsigned i) const    { return 2*(i+1)-1; }
+    unsigned right(unsigned i) const   { return 2*(i+1)-0; }
+    unsigned parent(unsigned i) const  { return (i+1)/2-1; }
+    unsigned sibling(unsigned i) const { return ((i+1)^1)-1; }
 
     // Perfect iteration
     struct perfect {
@@ -38,11 +38,11 @@ private:
         operator unsigned() { return i; }
     };
 
-    bool valid(perfect i)      { return i.w > 1; }
-    perfect left(perfect i)    { i.i = left(i.i); i.w /= 2; return i; }
-    perfect right(perfect i)   { i.i = right(i.i); i.w /= 2; return i; }
-    perfect parent(perfect i)  { i.i = parent(i.i); i.w *= 2; return i; }
-    perfect sibling(perfect i) { i.i = sibling(i.i); return i; }
+    bool valid(perfect i) const      { return i.w > 1; }
+    perfect left(perfect i) const    { i.i = left(i.i); i.w /= 2; return i; }
+    perfect right(perfect i) const   { i.i = right(i.i); i.w /= 2; return i; }
+    perfect parent(perfect i) const  { i.i = parent(i.i); i.w *= 2; return i; }
+    perfect sibling(perfect i) const { i.i = sibling(i.i); return i; }
 
     // Terrible iteration
     struct terrible {
@@ -51,15 +51,15 @@ private:
         operator unsigned() { return i; }
     };
 
-    bool valid(terrible i)       { return i.i < data.size; }
-    terrible left(terrible i)    { i.i = left(i.i); return i; }
-    terrible right(terrible i)   { i.i = right(i.i); return i; }
-    terrible parent(terrible i)  { i.i = parent(i.i); return i; }
-    terrible sibling(terrible i) { i.i = sibling(i.i); return i; }
+    bool valid(terrible i) const       { return i.i < data.size; }
+    terrible left(terrible i) const    { i.i = left(i.i); return i; }
+    terrible right(terrible i) const   { i.i = right(i.i); return i; }
+    terrible parent(terrible i) const  { i.i = parent(i.i); return i; }
+    terrible sibling(terrible i) const { i.i = sibling(i.i); return i; }
 
     // Iteration over the actual tree
     template <typename I>
-    I smallest(I i) {
+    I smallest(I i) const {
         I p = -1;
         while (valid(i)) {
             p = i;
@@ -70,7 +70,7 @@ private:
     }
 
     template <typename I>
-    I largest(I i) {
+    I largest(I i) const {
         I p = -1;
         while (valid(i)) {
             p = i;
@@ -81,7 +81,7 @@ private:
     }
 
     template <typename I>
-    I succ(I i) {
+    I succ(I i) const {
         if (valid(right(i))) {
             return smallest(right(i));
         } else {
@@ -96,7 +96,7 @@ private:
     }
 
     template <typename I>
-    I pred(I i) {
+    I pred(I i) const {
         if (valid(left(i))) {
             return largest(left(i));
         } else {
@@ -111,7 +111,7 @@ private:
     }
 
     // General traversal
-    unsigned lookup(const K &key) {
+    unsigned lookup(const K &key) const {
         unsigned i = 0;
         while (valid(i)) {
             if (key < data[i]->key) {
@@ -126,7 +126,7 @@ private:
         return i;
     }
 
-    unsigned weight(unsigned i) {
+    unsigned weight(unsigned i) const {
         if (!valid(i)) {
             return 0;
         } else {
@@ -134,7 +134,7 @@ private:
         }
     }
 
-    unsigned scapegoat(unsigned i, unsigned *w) {
+    unsigned scapegoat(unsigned i, unsigned *w) const {
         unsigned a = *w;
         unsigned b = weight(sibling(i));
         *w = a+b+1;
@@ -193,14 +193,12 @@ private:
 
 public: // Iterator mechanics
     class iter;
+    class const_iter;
 
-    iter begin() {
-        return iter(this, smallest(0));
-    }
-
-    iter end() {
-        return iter(this, -1);
-    }
+    iter begin() { return iter(this, smallest(0)); }
+    iter end()   { return iter(this, -1); }
+    const_iter begin() const { return const_iter(this, smallest(0)); }
+    const_iter end() const   { return const_iter(this, -1); }
 
 public: // Set operations
     iter find(const K &key) {
@@ -212,6 +210,15 @@ public: // Set operations
         }
     }
 
+    const_iter find(const K &key) const {
+        unsigned i = lookup(key);
+        if (valid(i)) {
+            return const_iter(this, i);
+        } else {
+            return const_iter(this, -1);
+        }
+    }
+
     void insert(const K &key, const V &val) {
         unsigned i = lookup(key);
         if (i >= data.size) {
@@ -219,17 +226,6 @@ public: // Set operations
         }
 
         data[i] = entry{pair{key, val}};
-        count++;
-    }
-
-    void erase(const K &key) {
-        unsigned i = lookup(key);
-        if (valid(i)) {
-            unsigned j = succ(i);
-            data[i] = data[j];
-            data[j] = entry{};
-            count--;
-        }
     }
 
     V &operator[](const K &key) {
@@ -240,10 +236,24 @@ public: // Set operations
 
         if (!data[i]) {
             data[i] = entry{pair{key, V{}}};
-            count++;
         }
 
         return data[i]->val;
+    }
+
+    const V &operator[](const K &key) const {
+        unsigned i = lookup(key);
+        assert(valid(i));
+        return data[i]->val;
+    }
+
+    void erase(const K &key) {
+        unsigned i = lookup(key);
+        if (valid(i)) {
+            unsigned j = succ(i);
+            data[i] = data[j];
+            data[j] = entry{};
+        }
     }
 };
 
@@ -269,6 +279,30 @@ public:
 
     bool operator==(const iter &iter) { return i == iter.i; }
     bool operator!=(const iter &iter) { return i != iter.i; }
+};
+
+template <typename K, typename V>
+class sgtree<K, V>::const_iter {
+private:
+    friend sgtree<K, V>;
+    const sgtree<K, V> *tree;
+    unsigned i;
+
+    const_iter(const sgtree<K, V> *tree, unsigned i) : tree(tree), i(i) {}
+
+public:
+    const sgtree<K, V>::pair &operator*() { return *tree->data[i]; }
+    const sgtree<K, V>::pair *operator->() { return &*tree->data[i]; }
+
+    const_iter &operator++() { i = tree->succ(i); return *this; }
+    const_iter &operator--() { i = tree->pred(i); return *this; }
+    const_iter operator++(int)
+        { const_iter p = *this; i = tree->succ(i); return p; }
+    const_iter operator--(int)
+        { const_iter p = *this; i = tree->pred(i); return p; }
+
+    bool operator==(const const_iter &iter) { return i == iter.i; }
+    bool operator!=(const const_iter &iter) { return i != iter.i; }
 };
 
 

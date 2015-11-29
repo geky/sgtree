@@ -3,9 +3,9 @@
 #include <iostream>
 
 template <typename K, typename V>
-std::ostream &operator<<(std::ostream &os, sgtree<K,V> &tree) {
+std::ostream &operator<<(std::ostream &os, const sgtree<K,V> &tree) {
     os << "{ ";
-    for (auto &i : tree) {
+    for (const auto &i : tree) {
         os << i.val << " ";
     }
     os << "}";
@@ -28,6 +28,9 @@ int main() {
         test[i] = i;
     }
 
-    std::cout << test << std::endl;
+    const sgtree<int, int> test2 = test;
+
+    std::cout << test2 << std::endl;
+    std::cout << test2[23] << std::endl;
 }
 
