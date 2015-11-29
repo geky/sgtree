@@ -6,6 +6,7 @@
 #define SGTREE_H
 
 #include <functional>
+#include <algorithm>
 #include "maybe.hpp"
 #include "buffer.hpp"
 
@@ -17,13 +18,26 @@ class sgtree;
 
 template <typename K, typename V>
 std::ostream &dump(buffer<typename sgtree<K,V>::entry> &b) {
+//    int i = 1;
+//    int c = 2;
+
     std::cout << "[ ";
     for (auto &e : b) {
         if (!e) {
-            std::cout << "- ";
+            std::cout << "-";
         } else {
-            std::cout << e->key << " ";
+            std::cout << e->key;
         }
+
+        std::cout << " ";
+
+//        if (--i == 0) {
+//            std::cout << "|";
+//            i = c;
+//            c *= 2;
+//        } else {
+//            std::cout << " ";
+//        }
     }
     std::cout << "]";
 
@@ -53,18 +67,45 @@ public:
     sgtree(unsigned size = 0) :
             data(size), count(0) {}
 
-private: // Indexing
-    bool valid(unsigned i)  {
-        return i < data.size && data[i];
-    }
-
+private:
+    // Normal iteration
+    bool valid(unsigned i)       { return i < data.size && data[i]; }
     unsigned left(unsigned i)    { return 2*(i+1)-1; }
     unsigned right(unsigned i)   { return 2*(i+1)-0; }
     unsigned parent(unsigned i)  { return (i+1)/2-1; }
     unsigned sibling(unsigned i) { return ((i+1)^1)-1; }
 
-    unsigned smallest(unsigned i) {
-        unsigned p = -1;
+    // Perfect iteration
+    struct perfect {
+        unsigned i; unsigned w;
+        perfect(unsigned i) : i(i), w(1) {}
+        perfect(unsigned i, unsigned w) : i(i), w(2*w) {}
+        operator unsigned() { return i; }
+    };
+
+    bool valid(perfect i)      { return i.w > 1; }
+    perfect left(perfect i)    { i.i = left(i.i); i.w /= 2; return i; }
+    perfect right(perfect i)   { i.i = right(i.i); i.w /= 2; return i; }
+    perfect parent(perfect i)  { i.i = parent(i.i); i.w *= 2; return i; }
+    perfect sibling(perfect i) { i.i = sibling(i.i); return i; }
+
+    // Terrible iteration
+    struct terrible {
+        unsigned i;
+        terrible(unsigned i) : i(i) {}
+        operator unsigned() { return i; }
+    };
+
+    bool valid(terrible i)       { return i.i < data.size; }
+    terrible left(terrible i)    { i.i = left(i.i); return i; }
+    terrible right(terrible i)   { i.i = right(i.i); return i; }
+    terrible parent(terrible i)  { i.i = parent(i.i); return i; }
+    terrible sibling(terrible i) { i.i = sibling(i.i); return i; }
+
+    // Iteration over the actual tree
+    template <typename I>
+    I smallest(I i) {
+        I p = -1;
         while (valid(i)) {
             p = i;
             i = left(p);
@@ -73,8 +114,9 @@ private: // Indexing
         return p;
     }
 
-    unsigned largest(unsigned i) {
-        unsigned p = -1;
+    template <typename I>
+    I largest(I i) {
+        I p = -1;
         while (valid(i)) {
             p = i;
             i = right(p);
@@ -83,12 +125,13 @@ private: // Indexing
         return p;
     }
 
-    unsigned succ(unsigned i) {
+    template <typename I>
+    I succ(I i) {
         if (valid(right(i))) {
             return smallest(right(i));
         } else {
-            unsigned p = parent(i);
-            while (valid(p) && i != left(p)) {
+            I p = parent(i);
+            while (p < data.size && i != left(p)) {
                 i = p;
                 p = parent(i);
             }
@@ -97,12 +140,13 @@ private: // Indexing
         }
     }
 
-    unsigned pred(unsigned i) {
+    template <typename I>
+    I pred(I i) {
         if (valid(left(i))) {
             return largest(left(i));
         } else {
-            unsigned p = parent(i);
-            while (valid(p) && i != right(p)) {
+            I p = parent(i);
+            while (p < data.size && i != right(p)) {
                 i = p;
                 p = parent(i);
             }
@@ -111,6 +155,7 @@ private: // Indexing
         }
     }
 
+    // General traversal
     unsigned lookup(const K &key) {
         unsigned i = 0;
         while (valid(i)) {
@@ -146,6 +191,7 @@ private: // Indexing
         }
     }
 
+#if 0
     void median(unsigned i, buffer<entry> &temp,
             unsigned lo, unsigned hi) {
         unsigned mid = (lo+hi)/2;
@@ -179,19 +225,53 @@ private: // Indexing
         dump<K,V>(temp) << " ordered" << std::endl;
         median(i, temp, 0, w-1);
     }
+#else
+    void rebalance(unsigned i, unsigned w, const entry &e) {
+        unsigned n;
+        unsigned j = largest(i);
+        terrible t = largest(terrible{i});
+
+        for (n = 0; n < w-1; n++) {
+            std::swap(data[t], data[j]);
+            j = pred(j);
+            t = pred(t);
+        }
+
+        dump<K,V>(data) << std::endl;
+
+        perfect p = smallest(perfect{i, w});
+        t = succ(t);
+    
+        for (n = 0; n < w-1 && data[t]->key < e->key; n++) {
+            std::swap(data[p], data[t]);
+            p = succ(p);
+            t = succ(t);
+        }
+
+        data[p] = e;
+        p = succ(p);
+
+        for (; n < w-1; n++) {
+            std::swap(data[p], data[t]);
+            p = succ(p);
+            t = succ(t);
+        }
+    }
+#endif
 
     void expand(unsigned i, const entry &e) {
-        dump<K,V>(data) << std::endl;
         unsigned w = 1;
         i = scapegoat(i, &w);
 
         if (valid(i)) {
-            rebalance(i, w, e);
             std::cout << "sg @ " << i << " -> " << w << std::endl;
+            dump<K,V>(data) << std::endl;
+            rebalance(i, w, e);
             dump<K,V>(data) << std::endl;
         } else {
             data.resize(data.size ? 2*data.size+1 : 1);
             std::cout << "resize (" << i << ", " << data.size << ") -> " << count << std::endl;
+            dump<K,V>(data) << std::endl;
         }
     }
 
