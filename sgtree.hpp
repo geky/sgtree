@@ -14,7 +14,8 @@
 
 template <typename K, typename V>
 class sgtree {
-private:
+//private:
+public:
     struct pair { K key; V val; };
     typedef maybe<pair> entry;
     buffer<entry> data;
@@ -32,17 +33,16 @@ private:
 
     // Perfect iteration
     struct perfect {
-        unsigned i; unsigned w;
-        perfect(unsigned i) : i(i), w(1) {}
-        perfect(unsigned i, unsigned w) : i(i), w(2*w) {}
+        unsigned i, w, d;
+        perfect(unsigned i, unsigned w=1, unsigned d=1)
+                : i(i), w(w), d(d) {}
         operator unsigned() { return i; }
     };
 
-    bool valid(perfect i) const      { return i.w > 1; }
-    perfect left(perfect i) const    { i.i = left(i.i); i.w /= 2; return i; }
-    perfect right(perfect i) const   { i.i = right(i.i); i.w /= 2; return i; }
-    perfect parent(perfect i) const  { i.i = parent(i.i); i.w *= 2; return i; }
-    perfect sibling(perfect i) const { i.i = sibling(i.i); return i; }
+    bool valid(perfect i) const      { return i.w >= i.d; }
+    perfect left(perfect i) const    { return perfect{left(i.i), i.w, 2*i.d}; }
+    perfect right(perfect i) const   { return perfect{right(i.i), i.w, 2*i.d+1}; }
+    perfect parent(perfect i) const  { return perfect{parent(i.i), i.w, i.d/2}; }
 
     // Terrible iteration
     struct terrible {
@@ -52,10 +52,9 @@ private:
     };
 
     bool valid(terrible i) const       { return i.i < data.size; }
-    terrible left(terrible i) const    { i.i = left(i.i); return i; }
-    terrible right(terrible i) const   { i.i = right(i.i); return i; }
-    terrible parent(terrible i) const  { i.i = parent(i.i); return i; }
-    terrible sibling(terrible i) const { i.i = sibling(i.i); return i; }
+    terrible left(terrible i) const    { return terrible{left(i.i)}; }
+    terrible right(terrible i) const   { return terrible{right(i.i)}; }
+    terrible parent(terrible i) const  { return terrible{parent(i.i)}; }
 
     // Iteration over the actual tree
     template <typename I>
@@ -139,7 +138,7 @@ private:
         unsigned b = weight(sibling(i));
         *w = a+b+1;
 
-        if (2*a > *w || 2*b > *w) {
+        if (2*a > *w) {
             return parent(i);
         } else {
             return scapegoat(parent(i), w);

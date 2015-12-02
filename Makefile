@@ -13,7 +13,7 @@ ASM += $(SRC:.cpp=.s)
 ifdef DEBUG
 CFLAGS += -O0 -g3
 else
-CFLAGS += -O2
+CFLAGS += -O3
 endif
 ifdef WORD
 CFLAGS += -m$(WORD)
