@@ -35,6 +35,9 @@ import contextlib
 DEFAULT_WIDTH = 72
 DEFAULT_HEIGHT = 20
 
+# Default max plot width to scale graphs to larger terminal screens
+MAX_PLOT_WIDTH = 80
+
 # SI prefixes
 PREFIXES = {
     18:  'E',
@@ -134,6 +137,8 @@ def ttydim(file):
         height, width, _, _ = struct.unpack('HHHH',
             fcntl.ioctl(file.fileno(), termios.TIOCGWINSZ,
                 struct.pack('HHHH', 0, 0, 0, 0)))
+        if(width > MAX_PLOT_WIDTH):
+            width = MAX_PLOT_WIDTH
         return width, height
     except:
         return None
