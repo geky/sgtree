@@ -36,6 +36,9 @@ all: $(TARGET)
 test: $(TARGET)
 	$(TARGET) $(TEST_SIZE)
 
+profile:
+	python tests/profile.py
+
 callgrind: $(TARGET).cpp
 	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) 			\
 		-include valgrind/callgrind.h				\
