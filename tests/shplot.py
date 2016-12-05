@@ -277,9 +277,8 @@ class ShPlot:
         if file.isatty() and (not self._width or not self._height):
             dim = ttydim(file)
             if dim:
-                width = self._width or dim[0]-8
-                height = self._height or min(
-                    dim[1]-4, width * DEFAULT_HEIGHT/DEFAULT_WIDTH)
+                width = self._width or min(dim[0]-8, DEFAULT_WIDTH)
+                height = self._height or width*DEFAULT_HEIGHT/DEFAULT_WIDTH
 
         m, (xmin, xmax), (ymin, ymax) = self._generate(width, height)
 
