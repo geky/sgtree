@@ -1,0 +1,12 @@
+install:
+    - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq g++-5
+    - export CXX='g++-5'
+
+    - sudo apt-get install -qq valgrind
+    - export VALGRIND='valgrind --I1=32768,8,64 --D1=32768,8,64 --LL=8388608,64,64'
+
+script:
+    - make test
+    - make profile

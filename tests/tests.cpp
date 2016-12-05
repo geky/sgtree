@@ -103,6 +103,10 @@ extern "C" void *malloc(size_t size) throw () {
 }
 
 extern "C" void free(void *p) throw () {
+    if (!p) {
+        return;
+    }
+
     size_t *m = static_cast<size_t*>(p) - 1;
     test_heap_current -= m[0];
     __libc_free(&m[0]);

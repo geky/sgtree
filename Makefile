@@ -1,7 +1,7 @@
 export TARGET = tests/tests
 
 export CXX ?= g++
-export SIZE ?= size
+export VALGRIND ?= valgrind
 
 export CXXFLAGS += -std=c++11 -pedantic -Wall -g3 -I.
 
@@ -45,7 +45,7 @@ callgrind: $(TARGET).cpp
 		-DTEST_SETUP=CALLGRIND_TOGGLE_COLLECT		\
 		-DTEST_SETDOWN=CALLGRIND_TOGGLE_COLLECT		\
 		$< -o $(TARGET)
-	valgrind --tool=callgrind 						\
+	$(VALGRIND) --tool=callgrind 					\
 		--callgrind-out-file=tests/callgrind.out 	\
 		--collect-atstart=no 						\
 		--cache-sim=yes --branch-sim=yes $(TARGET)
@@ -53,10 +53,11 @@ callgrind: $(TARGET).cpp
 
 massif: $(TARGET).cpp
 	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $< -o $(TARGET)
-	valgrind --tool=massif --massif-out-file=tests/massif.out $(TARGET)
+	$(VALGRIND) --tool=massif						\
+		--massif-out-file=tests/massif.out $(TARGET)
 	ms_print tests/massif.out
 
-.PHONY: # Just always rebuild, too many things could touch the target
+.PHONY: $(TARGET) # Just always rebuild, too many things could touch the target
 $(TARGET): $(TARGET).cpp
 	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $< -o $@
 

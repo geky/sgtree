@@ -25,6 +25,7 @@ import shplot
 TARGET   = os.getenv('TARGET', 'tests/tests')
 CXX      = os.getenv('CXX', 'c++').split()
 CXXFLAGS = os.getenv('CXXFLAGS', '-std=c++11 -I.').split()
+VALGRIND = os.getenv('VALGRIND', 'valgrind').split()
 
 TEST_CLASSES      = filter(None, os.getenv('TEST_CLASSES', '').split(','))
 TEST_CASES        = filter(None, os.getenv('TEST_CASES', '').split(','))
@@ -161,8 +162,8 @@ def profile_callgrind(class_, size):
 
     status.progress('running callgrind measurements (%d)' % size)
     output = 'tests/callgrind.out'
-    command = [
-        'valgrind', '--tool=callgrind',
+    command = VALGRIND + [
+        '--tool=callgrind',
         '--callgrind-out-file=' + output,
         '--collect-atstart=no',
         '--cache-sim=yes', '--branch-sim=yes',

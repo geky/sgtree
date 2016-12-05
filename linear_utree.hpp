@@ -56,7 +56,7 @@ public:
 
     iterator begin() {
         size_t i = 0;
-        while (i < _capacity && !(_array[i].exists && !_array[i].deleted)) {
+        while (i < _capacity && (!_array[i].exists || _array[i].deleted)) {
             i++;
         }
 
@@ -199,12 +199,10 @@ public:
     }
 
     iterator &operator++() {
-        while (_node != _end) {
-            _node += 1;
+        _node += 1;
 
-            if (_node->exists && !_node->deleted) {
-                break;
-            }
+        while (_node < _end && (!_node->exists || _node->deleted)) {
+            _node++;
         }
 
         return *this;
