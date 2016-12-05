@@ -54,7 +54,8 @@
     test_class(std::map);                   \
     test_class(std::unordered_map);         \
     test_class(utree);                      \
-    test_class(compact_utree);
+    test_class(compact_utree);              \
+    test_class(linear_utree);
 #endif
 
 
