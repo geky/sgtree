@@ -34,10 +34,10 @@ endif
 all: $(TARGET)
 
 test: $(TARGET)
-	$(TARGET) $(TEST_SIZE)
+	./$(TARGET) $(TEST_SIZE)
 
 profile:
-	python tests/profile.py
+	./tests/profile.py
 
 callgrind: $(TARGET).cpp
 	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) 			\
