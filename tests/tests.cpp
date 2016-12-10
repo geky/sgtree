@@ -16,9 +16,9 @@
 // Test classes
 #include <map>
 #include <unordered_map>
-#include "utree.hpp"
-#include "compact_utree.hpp"
-#include "linear_utree.hpp"
+#include "trees/utree.hpp"
+#include "trees/compact_utree.hpp"
+#include "trees/linear_utree.hpp"
 
 #ifndef TEST_SIZE
 #define TEST_SIZE 16384
