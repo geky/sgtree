@@ -31,7 +31,7 @@ TEST_CLASSES      = filter(None, os.getenv('TEST_CLASSES', '').split(','))
 TEST_CASES        = filter(None, os.getenv('TEST_CASES', '').split(','))
 TEST_MEASUREMENTS = filter(None, os.getenv('TEST_MEASUREMENTS', '').split(','))
 
-TEST_SIZE       = int(os.getenv('TEST_SIZE', '8192'))
+TEST_SIZE       = int(os.getenv('TEST_SIZE', '16384'))
 TEST_MIN        = int(os.getenv('TEST_MIN', '1024'))
 TEST_MAX        = int(os.getenv('TEST_MAX', TEST_SIZE))
 TEST_MULTIPLIER = float(os.getenv('TEST_MULTIPLIER', '2'))

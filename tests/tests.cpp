@@ -21,7 +21,7 @@
 #include "linear_utree.hpp"
 
 #ifndef TEST_SIZE
-#define TEST_SIZE 8192
+#define TEST_SIZE 16384
 #endif
 
 #ifndef TEST_RUNS
@@ -41,20 +41,19 @@
 #endif
 
 #ifndef TEST_CASES
-#define TEST_CASES                          \
-    test_case(random_insertions_test);      \
-    test_case(random_lookups_test);         \
-    test_case(random_deletions_test);       \
-    test_case(random_modifications_test);   \
+#define TEST_CASES                  \
+    test_case(lookups_test);        \
+    test_case(insertions_test);     \
+    test_case(deletions_test);      \
     test_case(iteration_test);
 #endif
 
 #ifndef TEST_CLASSES
-#define TEST_CLASSES                        \
-    test_class(std::map);                   \
-    test_class(std::unordered_map);         \
-    test_class(utree);                      \
-    test_class(compact_utree);              \
+#define TEST_CLASSES                \
+    test_class(std::map);           \
+    test_class(std::unordered_map); \
+    test_class(utree);              \
+    test_class(compact_utree);      \
     test_class(linear_utree);
 #endif
 
@@ -240,36 +239,16 @@ void test_case(const std::string &name, F test) {
 
 // Test cases
 template <template <typename ...> class M>
-void random_insertions_test() {
+void lookups_test() {
     M<unsigned, unsigned> map;
     test_random rand(0, test_size);
-
-    test_start();
-    for (size_t i = 0; i < 4*test_size; i++) {
-        unsigned r = rand();
-        map[r] = r;
-    }
-    test_stop();
-
-    rand.seed();
-    for (size_t i = 0; i < 4*test_size; i++) {
-        unsigned r = rand();
-        assert(map[r] == r);
-    }
-}
-
-template <template <typename ...> class M>
-void random_lookups_test() {
-    M<unsigned, unsigned> map;
-    test_random rand(0, test_size);
-
-    for (size_t i = 0; i < 4*test_size; i++) {
+    for (size_t i = 0; i < test_size; i++) {
         unsigned r = rand();
         map[r] = r;
     }
 
     test_start();
-    for (size_t i = 0; i < 4*test_size; i++) {
+    for (size_t i = 0; i < test_size; i++) {
         unsigned r = rand();
         auto f = map.find(r);
         if (f != map.end()) {
@@ -280,46 +259,34 @@ void random_lookups_test() {
 }
 
 template <template <typename ...> class M>
-void random_deletions_test() {
+void insertions_test() {
     M<unsigned, unsigned> map;
     test_random rand(0, test_size);
 
-    for (size_t i = 0; i < 4*test_size; i++) {
+    test_start();
+    for (size_t i = 0; i < test_size; i++) {
         unsigned r = rand();
         map[r] = r;
-    }
-
-    test_start();
-    for (size_t i = 0; i < 4*test_size; i++) {
-        unsigned r = rand();
-        auto f = map.find(r);
-        if (f != map.end()) {
-            assert(f->second == r);
-            map.erase(f);
-        }
     }
     test_stop();
 }
 
 template <template <typename ...> class M>
-void random_modifications_test() {
+void deletions_test() {
     M<unsigned, unsigned> map;
     test_random rand(0, test_size);
-
-    for (size_t i = 0; i < 4*test_size; i++) {
+    for (size_t i = 0; i < test_size; i++) {
         unsigned r = rand();
         map[r] = r;
     }
 
     test_start();
-    for (size_t i = 0; i < 4*test_size; i++) {
+    for (size_t i = 0; i < test_size; i++) {
         unsigned r = rand();
         auto f = map.find(r);
         if (f != map.end()) {
             assert(f->second == r);
             map.erase(f);
-        } else {
-            map[r] = r;
         }
     }
     test_stop();
@@ -329,13 +296,13 @@ template <template <typename ...> class M>
 void iteration_test() {
     M<unsigned, unsigned> map;
     test_random rand(0, test_size);
-
-    for (size_t i = 0; i < 4*test_size; i++) {
+    for (size_t i = 0; i < test_size; i++) {
         unsigned r = rand();
         map[r] = r;
     }
 
     size_t count = 0;
+
     test_start();
     for (auto &p : map) {
         assert(p.first == p.second);
