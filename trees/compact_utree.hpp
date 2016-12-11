@@ -17,7 +17,8 @@ class compact_utree {
 private:
     struct node {
         uint8_t deleted;
-        uint8_t exists;
+        uint8_t left;
+        uint8_t right;
         std::pair<K, V> pair;
     };
 
@@ -34,14 +35,12 @@ public:
         , _height(3)
         , _capacity((1 << _height) - 1) {
         _array = static_cast<node *>(malloc(_capacity*sizeof(node)));
-        memset(_array, 0, _capacity*sizeof(node));
+        new (&_array[0]) node{true, false, false, {K(), V()}};
     }
 
     ~compact_utree() {
-        for (size_t i = 0; i < _capacity; i++) {
-            if (_array[i].exists) {
-                _array[i].pair.~pair();
-            }
+        for (size_t i = _rawsmallest(0); i < _capacity; i = _rawsucc(i)) {
+            _array[i].pair.~pair();
         }
 
         free(_array);
@@ -64,68 +63,52 @@ private:
         return 2*i + 2;
     }
 
-    bool _exists(size_t i) {
-        return i < _capacity && _array[i].exists;
-    }
-
-    bool _pureexists(size_t cap, size_t i) {
-        return i < cap;
-    }
-
     size_t _rawsmallest(size_t i) {
-        size_t p = -1;
-        while (_exists(i)) {
-            p = i;
+        while (_array[i].left) {
             i = _left(i);
         }
-        return p;
+        return i;
     }
 
     size_t _puresmallest(size_t cap, size_t i) {
-        size_t p = -1;
-        while (_pureexists(cap, i)) {
-            p = i;
+        while (_left(i) < cap) {
             i = _left(i);
         }
-        return p;
+        return i;
     }
 
     size_t _smallest(size_t i) {
         i = _rawsmallest(i);
-        while (_exists(i) && _array[i].deleted) {
+        while (i < _capacity && _array[i].deleted) {
             i = _rawsucc(i);
         }
         return i;
     }
 
     size_t _rawlargest(size_t i) {
-        size_t p = -1;
-        while (_exists(i)) {
-            p = i;
+        while (_array[i].right) {
             i = _right(i);
         }
-        return p;
+        return i;
     }
 
     size_t _purelargest(size_t cap, size_t i) {
-        size_t p = -1;
-        while (_pureexists(cap, i)) {
-            p = i;
+        while (_right(i) < cap) {
             i = _right(i);
         }
-        return p;
+        return i;
     }
 
     size_t _largest(size_t i) {
         i = _rawlargest(i);
-        while (_exists(i) && _array[i].deleted) {
+        while (i < _capacity && _array[i].deleted) {
             i = _rawlargest(i);
         }
         return i;
     }
 
     size_t _rawsucc(size_t i) {
-        if (_exists(_right(i))) {
+        if (_array[i].right) {
             return _rawsmallest(_right(i));
         } else {
             size_t p = _parent(i);
@@ -138,11 +121,11 @@ private:
     }
 
     size_t _puresucc(size_t cap, size_t i) {
-        if (_pureexists(cap, _right(i))) {
+        if (_right(i) < cap) {
             return _puresmallest(cap, _right(i));
         } else {
             size_t p = _parent(i);
-            while (_pureexists(cap, p) && i != _left(p)) {
+            while (p < cap && i != _left(p)) {
                 i = p;
                 p = _parent(p);
             }
@@ -152,14 +135,14 @@ private:
 
     size_t _succ(size_t i) {
         i = _rawsucc(i);
-        while (_exists(i) && _array[i].deleted) {
+        while (i < _capacity && _array[i].deleted) {
             i = _rawsucc(i);
         }
         return i;
     }
 
     size_t _rawpred(size_t i) {
-        if (_exists(_left(i))) {
+        if (_array[i].left) {
             return _rawlargest(_left(i));
         } else {
             size_t p = _parent(i);
@@ -172,11 +155,11 @@ private:
     }
 
     size_t _purepred(size_t cap, size_t i) {
-        if (_pureexists(cap, _left(i))) {
+        if (_left(i) < cap) {
             return _purelargest(cap, _left(i));
         } else {
             size_t p = _parent(i);
-            while (_pureexists(cap, p) && i != _right(p)) {
+            while (p < cap && i != _right(p)) {
                 i = p;
                 p = _parent(p);
             }
@@ -186,7 +169,7 @@ private:
 
     size_t _pred(size_t i) {
         i = _rawpred(i);
-        while (_exists(i) && _array[i].deleted) {
+        while (i < _capacity && _array[i].deleted) {
             i = _rawpred(i);
         }
         return i;
@@ -209,15 +192,21 @@ private:
             size_t nheight = _height + 1;
             size_t ncapacity = (1 << _height) - 1;
             node *narray = static_cast<node*>(malloc(ncapacity*sizeof(node)));
-            memset(narray, 0, ncapacity*sizeof(node));
 
-            for (size_t i = 0; i < _capacity; i++) {
-                if (_array[i].exists) {
-                    narray[i].exists = true;
-                    new (&narray[i].pair) std::pair<K, V>(
-                        std::move(_array[i].pair));
+            size_t bi = _puresmallest(_size, 0);
+            for (size_t i = _rawsmallest(0); i < _capacity; i = _rawsucc(i)) {
+                if (_array[i].deleted) {
                     _array[i].pair.~pair();
+                    continue;
                 }
+
+                new (&narray[bi]) node{
+                    false,
+                    _left(bi) < _size,
+                    _right(bi) < _size,
+                    std::move(_array[i].pair)};
+                _array[i].pair.~pair();
+                bi = _puresucc(_size, bi);
             }
 
             free(_array);
@@ -226,12 +215,15 @@ private:
             _capacity = ncapacity;
         } else {
             size_t wi = _purelargest(_capacity, 0);
-            for (size_t i = _largest(0); i < _capacity; i = _pred(i)) {
+            for (size_t i = _rawlargest(0); i < _capacity; i = _rawpred(i)) {
+                if (_array[i].deleted) {
+                    _array[i].pair.~pair();
+                    continue;
+                }
+
                 if (wi != i) {
-                    _array[wi].exists = true;
-                    new (&_array[wi].pair) std::pair<K, V>(
-                        std::move(_array[i].pair));
-                    _array[i].exists = false;
+                    new (&_array[wi].pair) std::pair<K, V>{
+                        std::move(_array[i].pair)};
                     _array[i].pair.~pair();
                 }
                 wi = _purepred(_capacity, wi);
@@ -241,10 +233,11 @@ private:
             wi = _puresucc(_capacity, wi);
             for (size_t i = 0; i < _size; i++) {
                 if (bi != wi) {
-                    _array[bi].exists = true;
-                    new (&_array[bi].pair) std::pair<K, V>(
-                        std::move(_array[wi].pair));
-                    _array[wi].exists = false;
+                    new (&_array[bi]) node{
+                        false,
+                        _left(bi) < _size,
+                        _right(bi) < _size,
+                        std::move(_array[wi].pair)};
                     _array[wi].pair.~pair();
                 }
                 bi = _puresucc(_size, bi);
@@ -257,10 +250,16 @@ public:
     iterator find(const K &k) {
         size_t i = 0;
 
-        while (_exists(i)) {
+        while (true) {
             if (_less(k, _array[i].pair.first)) {
+                if (!_array[i].left) {
+                    return end();
+                }
                 i = _left(i);
             } else if (_less(_array[i].pair.first, k)) {
+                if (!_array[i].right) {
+                    return end();
+                }
                 i = _right(i);
             } else {
                 if (_array[i].deleted) {
@@ -269,17 +268,26 @@ public:
                 return iterator(this, i);
             }
         }
-
-        return end();
     }
 
     V &operator[](const K &k) {
         size_t i = 0;
+        uint8_t *branch = nullptr;
 
-        while (_exists(i)) {
+        while (true) {
             if (_less(k, _array[i].pair.first)) {
+                if (!_array[i].left) {
+                    branch = &_array[i].left;
+                    i = _left(i);
+                    break;
+                }
                 i = _left(i);
             } else if (_less(_array[i].pair.first, k)) {
+                if (!_array[i].right) {
+                    branch = &_array[i].right;
+                    i = _right(i);
+                    break;
+                }
                 i = _right(i);
             } else {
                 if (_array[i].deleted) {
@@ -296,8 +304,8 @@ public:
             return operator[](k);
         }
 
-        _array[i].exists = true;
-        new (&_array[i].pair) std::pair<K, V>(k, V());
+        *branch = true;
+        new (&_array[i]) node{false, false, false, {k, V()}};
         _size += 1;
 
         return _array[i].pair.second;
