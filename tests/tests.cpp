@@ -19,6 +19,7 @@
 #include "trees/utree.hpp"
 #include "trees/compact_utree.hpp"
 #include "trees/linear_utree.hpp"
+#include "trees/sgtree.hpp"
 
 #ifndef TEST_SIZE
 #define TEST_SIZE 16384
@@ -267,6 +268,17 @@ void insertions_test() {
     for (size_t i = 0; i < test_size; i++) {
         unsigned r = rand();
         map[r] = r;
+    }
+    test_stop();
+}
+
+template <template <typename ...> class M>
+void pathological_test() {
+    M<unsigned, unsigned> map;
+
+    test_start();
+    for (size_t i = 0; i < test_size; i++) {
+        map[i] = i;
     }
     test_stop();
 }
