@@ -16,10 +16,10 @@
 // Test classes
 #include <map>
 #include <unordered_map>
-#include "trees/utree.hpp"
+#include "trees/naive_utree.hpp"
 #include "trees/compact_utree.hpp"
 #include "trees/linear_utree.hpp"
-#include "trees/sgtree.hpp"
+#include "trees/naive_sgtree.hpp"
 
 #ifndef TEST_SIZE
 #define TEST_SIZE 16384
@@ -53,7 +53,7 @@
 #define TEST_CLASSES                \
     test_class(std::map);           \
     test_class(std::unordered_map); \
-    test_class(utree);              \
+    test_class(naive_utree);        \
     test_class(compact_utree);      \
     test_class(linear_utree);
 #endif

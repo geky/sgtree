@@ -5,13 +5,13 @@
  * Distributed under the MIT license
  */
 
-#ifndef UTREE_HPP
-#define UTREE_HPP
+#ifndef NAIVE_UTREE_HPP
+#define NAIVE_UTREE_HPP
 
 #include <functional>
 
 template <typename K, typename V, typename C=std::less<K>>
-class utree {
+class naive_utree {
 private:
     struct node {
         node *parent;
@@ -26,12 +26,12 @@ private:
     size_t _size;
 
 public:
-    utree()
+    naive_utree()
         : _root(nullptr)
         , _size(0) {
     }
 
-    ~utree() {
+    ~naive_utree() {
         _del(_root);
     }
 
@@ -165,9 +165,9 @@ public:
 };
 
 template <typename K, typename V, typename C>
-class utree<K, V, C>::iterator {
+class naive_utree<K, V, C>::iterator {
 private:
-    friend utree;
+    friend naive_utree;
     node *_node;
 
     iterator(node *node)

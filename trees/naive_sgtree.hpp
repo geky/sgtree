@@ -5,8 +5,8 @@
  * Distributed under the MIT license
  */
 
-#ifndef SGTREE_HPP
-#define SGTREE_HPP
+#ifndef NAIVE_SGTREE_HPP
+#define NAIVE_SGTREE_HPP
 
 #include <functional>
 #include <ratio>
@@ -14,21 +14,21 @@
 template <typename K, typename V,
     typename C=std::less<K>,
     typename A=std::ratio<3,4>>
-class sgtree;
+class naive_sgtree;
 
 template <typename K, typename V, typename C=std::less<K>>
-using sgtree12 = sgtree<K, V, C, std::ratio<1,2>>;
+using naive_sgtree12 = naive_sgtree<K, V, C, std::ratio<1,2>>;
 template <typename K, typename V, typename C=std::less<K>>
-using sgtree58 = sgtree<K, V, C, std::ratio<5,8>>;
+using naive_sgtree58 = naive_sgtree<K, V, C, std::ratio<5,8>>;
 template <typename K, typename V, typename C=std::less<K>>
-using sgtree34 = sgtree<K, V, C, std::ratio<3,4>>;
+using naive_sgtree34 = naive_sgtree<K, V, C, std::ratio<3,4>>;
 template <typename K, typename V, typename C=std::less<K>>
-using sgtree78 = sgtree<K, V, C, std::ratio<7,8>>;
+using naive_sgtree78 = naive_sgtree<K, V, C, std::ratio<7,8>>;
 template <typename K, typename V, typename C=std::less<K>>
-using sgtree11 = sgtree<K, V, C, std::ratio<1,1>>;
+using naive_sgtree11 = naive_sgtree<K, V, C, std::ratio<1,1>>;
 
 template <typename K, typename V, typename C, typename A>
-class sgtree {
+class naive_sgtree {
 private:
     struct node {
         node *parent;
@@ -44,12 +44,12 @@ private:
     size_t _size;
 
 public:
-    sgtree()
+    naive_sgtree()
         : _root(nullptr)
         , _size(0) {
     }
 
-    ~sgtree() {
+    ~naive_sgtree() {
         _del(_root);
     }
 
@@ -249,9 +249,9 @@ public:
 };
 
 template <typename K, typename V, typename C, typename A>
-class sgtree<K, V, C, A>::iterator {
+class naive_sgtree<K, V, C, A>::iterator {
 private:
-    friend sgtree;
+    friend naive_sgtree;
     node *_node;
 
     iterator(node *node)
